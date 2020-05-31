@@ -1,9 +1,6 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
-using System.IO;
+﻿using System.ComponentModel.DataAnnotations;
 using Experiments.Api.ML.SentimentAnalysis;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.ML;
 
 namespace Experiments.Api.Controllers
 {
@@ -11,37 +8,34 @@ namespace Experiments.Api.Controllers
     [ApiController]
     public class SentimentController : ControllerBase
     {
-        private readonly PredictionEnginePool<SentimentObservation, SentimentPrediction> predictionEnginePool;
-        public SentimentController(PredictionEnginePool<SentimentObservation, SentimentPrediction> predictionEnginePool)
+        private readonly SentimentAnalysisModel model;
+        public SentimentController()
         {
-            this.predictionEnginePool = predictionEnginePool;
+            this.model = new SentimentAnalysisModel();
         }
 
         [HttpGet]
         [Route("predict")]
         public ActionResult<float> GetPrediction([FromQuery, Required] string text)
         {
-            var sampleData = new SentimentObservation { Text = text };
+            var observation = new SentimentObservation { Text = text };
 
-            var prediction = this.predictionEnginePool.Predict(sampleData);
+            var prediction = this.model.Predict(observation);
 
-            float percentage = CalculatePercentage(prediction.Score);
-
-            return percentage;
-        }
-
-        public float CalculatePercentage(double value)
-        {
-            return 100 * (1.0f / (1.0f + (float)Math.Exp(-value)));
+            return prediction.Probability * 100;
         }
 
         [HttpPost]
         [Route("train")]
         public ActionResult PostTrain()
         {
-            new SentimentAnalysisModel();
+            this.model.Train();
 
-            return this.Ok();
+            var metrics = this.model.Evaluate();
+
+            this.model.Save();
+
+            return this.Ok(metrics);
         }
     }
 }

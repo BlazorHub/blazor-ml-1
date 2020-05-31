@@ -2,41 +2,65 @@
 using System.IO;
 using System.Linq;
 using Microsoft.ML;
+using Microsoft.ML.Data;
 using static Microsoft.ML.DataOperationsCatalog;
 
 namespace Experiments.Api.ML.SentimentAnalysis
 {
     public class SentimentAnalysisModel
     {
-        static readonly string _dataPath = Path.Combine(Environment.CurrentDirectory, "ML", "SentimentAnalysis", "Data", "yelp_labelled.txt");
-        public ITransformer Model { get; set; }
+        private const string MODEL_PATH = "ML//SentimentAnalysis//SentimentAnalysisModel.zip";
+        private readonly MLContext mlContext;
+        private TrainTestData trainTestData;
+        private ITransformer model;
         public SentimentAnalysisModel()
         {
-            MLContext mlContext = new MLContext();
+            this.mlContext = new MLContext();
 
-            TrainTestData trainTestData = this.LoadData(mlContext);
-
-            this.Model = this.BuildAndTrainModel(mlContext, trainTestData.TrainSet);
-
-            mlContext.Model.Save(this.Model, trainTestData.TrainSet.Schema, "ML//SentimentAnalysis//SentimentAnalysisModel.zip");
+            this.model = this.mlContext.Model.Load(MODEL_PATH, out var _);
         }
 
-        private ITransformer BuildAndTrainModel(MLContext mlContext, IDataView trainSet)
+        public void Train()
         {
-            var estimator = mlContext.Transforms.Text.FeaturizeText(outputColumnName: "Features", inputColumnName: nameof(SentimentObservation.Text))
-                                     .Append(mlContext.BinaryClassification.Trainers.SdcaLogisticRegression(labelColumnName: "Label", featureColumnName: "Features"));
+            this.trainTestData = this.LoadData();
 
-            var model = estimator.Fit(trainSet);
-
-            return model;
+            this.model = this.BuildAndTrainModel();
         }
 
-        private TrainTestData LoadData(MLContext mlContext)
+        public CalibratedBinaryClassificationMetrics Evaluate()
         {
-            IDataView dataView = mlContext.Data.LoadFromTextFile<SentimentObservation>(_dataPath, hasHeader: false);
+            var predictions = this.model.Transform(this.trainTestData.TestSet);
 
-            return mlContext.Data.TrainTestSplit(dataView, testFraction: 0.2);
+            return this.mlContext.BinaryClassification.Evaluate(predictions, labelColumnName: "Label");
         }
 
+        public SentimentPrediction Predict(SentimentObservation observation)
+        {
+            var predictionFunction = this.mlContext.Model.CreatePredictionEngine<SentimentObservation, SentimentPrediction>(this.model);
+            
+            return predictionFunction.Predict(observation);
+        }
+
+        public void Save()
+        {
+            this.mlContext.Model.Save(this.model, trainTestData.TrainSet.Schema, MODEL_PATH);
+        }
+
+        private ITransformer BuildAndTrainModel()
+        {
+            var estimator = this.mlContext.Transforms.Text.FeaturizeText(outputColumnName: "Features", inputColumnName: nameof(SentimentObservation.Text))
+                .Append(mlContext.BinaryClassification.Trainers.SdcaLogisticRegression(labelColumnName: "Label", featureColumnName: "Features"));
+
+            return estimator.Fit(this.trainTestData.TrainSet);
+        }
+
+        private TrainTestData LoadData()
+        {
+            string dataPath = Path.Combine(Environment.CurrentDirectory, "ML", "SentimentAnalysis", "Data", "yelp_labelled.txt");
+
+            IDataView dataView = this.mlContext.Data.LoadFromTextFile<SentimentObservation>(dataPath, hasHeader: false);
+
+            return this.mlContext.Data.TrainTestSplit(dataView, testFraction: 0.2);
+        }
     }
 }
