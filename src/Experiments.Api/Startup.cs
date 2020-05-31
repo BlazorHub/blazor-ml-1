@@ -1,8 +1,10 @@
+using Experiments.Api.ML.SentimentAnalysis;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.ML;
 
 namespace Experiments.Api
 {
@@ -28,6 +30,9 @@ namespace Experiments.Api
                 });
             });
             services.AddControllers();
+
+            services.AddPredictionEnginePool<SentimentObservation, SentimentPrediction>()
+                    .FromFile(this.Configuration["ML:SentimentAnalysis:ModelPath"]);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

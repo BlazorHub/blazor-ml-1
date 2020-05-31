@@ -1,0 +1,27 @@
+﻿@page "/sentiment"
+@inject HttpClient Http
+
+<h2>Sentiment Analysis</h2>
+<p>
+    <textarea cols="45" placeholder="Text" @oninput="UpdateScoreAsync"></textarea>
+</p>
+
+<HappinessScale Value="Happiness" />
+
+@code {
+    public float Happiness { get; set; } = 50;
+
+    private async Task UpdateScoreAsync(ChangeEventArgs e)
+    {
+        var text = e.Value as string;
+
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            this.Happiness = await this.Http.GetFromJsonAsync<float>($"sentiment/predict?text={text}");
+        } 
+        else
+        {
+            this.Happiness = 50;
+        }
+    }
+}
