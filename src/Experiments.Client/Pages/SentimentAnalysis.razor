@@ -6,11 +6,11 @@
     <textarea cols="45" placeholder="Text" @oninput="UpdateScoreAsync"></textarea>
 </p>
 
-<HappinessScale Value="Happiness" />
+<SentimentScale Value="Sentiment" />
 
 @code {
     private const float DEFAULT = 50;
-    public float Happiness { get; set; } = DEFAULT;
+    public float Sentiment { get; set; } = DEFAULT;
 
     private async Task UpdateScoreAsync(ChangeEventArgs e)
     {
@@ -18,7 +18,7 @@
 
         if (!string.IsNullOrWhiteSpace(text))
         {
-            this.Happiness = await this.Http.GetFromJsonAsync<float>($"sentiment/predict?text={text}")
+            this.Sentiment = await this.Http.GetFromJsonAsync<float>($"sentiment/predict?text={text}")
                 .ContinueWith(r =>
                 {
                     if (!string.IsNullOrWhiteSpace(text))
@@ -30,7 +30,7 @@
         }
         else
         {
-            this.Happiness = DEFAULT;
+            this.Sentiment = DEFAULT;
         }
     }
 }
