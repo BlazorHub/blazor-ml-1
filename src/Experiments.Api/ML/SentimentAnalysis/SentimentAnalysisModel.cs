@@ -50,17 +50,17 @@ namespace Experiments.Api.ML.SentimentAnalysis
 
         private ITransformer BuildAndTrainModel()
         {
-            var estimator = this.mlContext.Transforms.Text.FeaturizeText(outputColumnName: "Features", inputColumnName: nameof(SentimentObservation.Text))
-                .Append(mlContext.BinaryClassification.Trainers.SdcaLogisticRegression(labelColumnName: "Label", featureColumnName: "Features"));
+            var model = this.mlContext.Transforms.Text.FeaturizeText("Features", inputColumnName: nameof(SentimentObservation.Text))
+                .Append(this.mlContext.BinaryClassification.Trainers.SdcaLogisticRegression(labelColumnName: "Label", featureColumnName: "Features"));
 
-            return estimator.Fit(this.trainTestData.TrainSet);
+            return model.Fit(this.trainTestData.TrainSet);
         }
 
         private TrainTestData LoadData()
         {
-            string dataPath = Path.Combine(Environment.CurrentDirectory, "ML", "SentimentAnalysis", "Data", "yelp_labelled.txt");
+            var dataPath = Path.Combine(Environment.CurrentDirectory, "ML", "SentimentAnalysis", "Data", "yelp_labelled.txt");
 
-            IDataView dataView = this.mlContext.Data.LoadFromTextFile<SentimentObservation>(dataPath, hasHeader: false);
+            var dataView = this.mlContext.Data.LoadFromTextFile<SentimentObservation>(dataPath, hasHeader: false);
 
             return this.mlContext.Data.TrainTestSplit(dataView, testFraction: 0.2);
         }
