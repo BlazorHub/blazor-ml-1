@@ -9,7 +9,8 @@
 <HappinessScale Value="Happiness" />
 
 @code {
-    public float Happiness { get; set; } = 50;
+    private const float DEFAULT = 50;
+    public float Happiness { get; set; } = DEFAULT;
 
     private async Task UpdateScoreAsync(ChangeEventArgs e)
     {
@@ -17,11 +18,19 @@
 
         if (!string.IsNullOrWhiteSpace(text))
         {
-            this.Happiness = await this.Http.GetFromJsonAsync<float>($"sentiment/predict?text={text}");
-        } 
+            this.Happiness = await this.Http.GetFromJsonAsync<float>($"sentiment/predict?text={text}")
+                .ContinueWith(r =>
+                {
+                    if (!string.IsNullOrWhiteSpace(text))
+                    {
+                        return r.Result;
+                    }
+                    return DEFAULT;
+                });
+        }
         else
         {
-            this.Happiness = 50;
+            this.Happiness = DEFAULT;
         }
     }
 }
