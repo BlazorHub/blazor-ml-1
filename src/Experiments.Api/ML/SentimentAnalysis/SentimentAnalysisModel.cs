@@ -20,30 +20,32 @@ namespace Experiments.Api.ML.SentimentAnalysis
             this.model = this.mlContext.Model.Load(MODEL_PATH, out var _);
         }
 
-        public void Train()
+        public CalibratedBinaryClassificationMetrics Train()
         {
             this.trainTestData = this.LoadData();
 
             this.model = this.BuildAndTrainModel();
-        }
 
-        public CalibratedBinaryClassificationMetrics Evaluate()
-        {
-            var predictions = this.model.Transform(this.trainTestData.TestSet);
-
-            return this.mlContext.BinaryClassification.Evaluate(predictions, labelColumnName: "Label");
+            return Evaluate();
         }
 
         public SentimentPrediction Predict(SentimentObservation observation)
         {
             var predictionFunction = this.mlContext.Model.CreatePredictionEngine<SentimentObservation, SentimentPrediction>(this.model);
-            
+
             return predictionFunction.Predict(observation);
         }
 
         public void Save()
         {
             this.mlContext.Model.Save(this.model, trainTestData.TrainSet.Schema, MODEL_PATH);
+        }
+
+        private CalibratedBinaryClassificationMetrics Evaluate()
+        {
+            var predictions = this.model.Transform(this.trainTestData.TestSet);
+
+            return this.mlContext.BinaryClassification.Evaluate(predictions, labelColumnName: "Label");
         }
 
         private ITransformer BuildAndTrainModel()

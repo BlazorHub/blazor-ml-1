@@ -29,9 +29,7 @@ namespace Experiments.Api.Controllers
         [Route("train")]
         public ActionResult PostTrain()
         {
-            this.model.Train();
-
-            var metrics = this.model.Evaluate();
+            var metrics = this.model.Train();
 
             this.model.Save();
 
